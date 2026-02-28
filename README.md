@@ -4,7 +4,7 @@ Hosts a RAG LLM pipeline for analyzing earnings reports, 10-Ks, and other financ
 
 # DEMO output
 
-## BUILD DEMO
+## Run demo
 
 ```
 (base) roberto ~/Documents/financial-llm-rag (main) $ PYTHONPATH=. python scripts/demo.py 
@@ -39,3 +39,28 @@ uvicorn app.main:app --reload
 {"question":"What was net income in 2025?","answer":"Net income $ 112,010 $ 93,736 $ 96,995 Earnings per share: Basic $ 7.49 $ 6.11 $ 6.16 Diluted $ ves/edgar/data/320193/000032019325000079/aapl-20250927.htm 34/78 1/17/26, 11:13 AM aapl-20250927"}(base) roberto ~/Documents/financial-llm-rag (main) $ 
 ```
 
+## Run tests locally
+
+```
+(base) roberto ~/Documents/financial-llm-rag (main) $ PYTHONPATH=. pytest
+========================== test session starts ===========================
+platform linux -- Python 3.9.18, pytest-8.4.2, pluggy-1.6.0
+rootdir: /home/roberto/Documents/financial-llm-rag
+configfile: pytest.ini
+plugins: hydra-core-1.3.2, anyio-4.2.0, typeguard-4.5.1, time-machine-2.13.0
+collected 2 items                                                        
+
+tests/test_app.py ..                                               [100%]
+
+============================ warnings summary ============================
+../../miniconda3/lib/python3.9/site-packages/huggingface_hub/file_download.py:942
+  /home/roberto/miniconda3/lib/python3.9/site-packages/huggingface_hub/file_download.py:942: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+    warnings.warn(
+
+../../miniconda3/lib/python3.9/site-packages/httpx/_client.py:680
+  /home/roberto/miniconda3/lib/python3.9/site-packages/httpx/_client.py:680: DeprecationWarning: The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport(app=...)' instead.
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============== 2 passed, 2 warnings in 157.79s (0:02:37) ================
+```
