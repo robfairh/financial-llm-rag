@@ -1,15 +1,22 @@
 from fastapi import FastAPI
-from .rag import generate_answer
+from pydantic import BaseModel
+from app.rag import generate_answer
 
 
 app = FastAPI()
+
 
 @app.get("/")
 def read_root():
     return {"message": "Financial LLM RAG API running"}
 
+
+class AnalyzeRequest(BaseModel):
+    question: str
+
+
 @app.post("/analyze")
-def analyze(question: str):
-    answer = generate_answer(question)
-    return {"question": question, "answer": answer}
+def analyze(request: AnalyzeRequest):
+    answer = generate_answer(request.question)
+    return {"question": request.question, "answer": answer}
 
