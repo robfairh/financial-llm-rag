@@ -1,72 +1,98 @@
-# import faiss
-# import torch
-# import numpy as np
-# from sentence_transformers import SentenceTransformer
-# from transformers import AutoModelForCausalLM, AutoTokenizer
-# 
-# 
-# # 1. Load embeddings
-# embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
-# 
-# # 2. Dummy vector DB
-# dimension = 384
-# index = faiss.IndexFlatL2(dimension)
-# texts = [
-#     "Company revenue increased by 10%",
-#     "R&D expenses grew by 5%"
-# ]
-# embeddings = embedding_model.encode(texts)
-# index.add(np.array(embeddings).astype("float32"))
-# 
-# # 3. Load LLM
-# model_name = "tiiuae/falcon-7b-instruct"
-# tokenizer = AutoTokenizer.from_pretrained(model_name)
-# model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
-# # model = AutoModelForCausalLM.from_pretrained(model_name)
-# 
-# def retrieve(query, k=1):
-#     q_emb = embedding_model.encode([query])
-#     D, I = index.search(np.array(q_emb).astype("float32"), k)
-#     return [texts[i] for i in I[0]]
-# 
-# def generate_answer(query):
-#     context = retrieve(query)[0]
-#     input_text = f"Context: {context}\nQuestion: {query}\nAnswer:"
-#     inputs = tokenizer(input_text, return_tensors="pt").to("cuda")
-#     outputs = model.generate(**inputs, max_new_tokens=150)
-#     return tokenizer.decode(outputs[0], skip_special_tokens=True)
-# 
-# rag.py
-
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import faiss
+import pdfplumber
+import numpy as np
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from sentence_transformers import SentenceTransformer
 
 
-_model = None
-_tokenizer = None
+# -------------------
+# config
+# -------------------
+# MODEL_NAME = "tiiuae/falcon-7b-instruct"
+MODEL_NAME = "google/flan-t5-small"
+EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+_model, _tokenizer = None, None
+embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
 
+# FAISS index and storage
+index = None
+chunks = []
+
+# -------------------
+# Model lazy loader
+# -------------------
 def get_model():
     global _model, _tokenizer
-
     if _model is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        model_name = "tiiuae/falcon-7b-instruct"
-        _tokenizer = AutoTokenizer.from_pretrained(model_name)
-        _model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
-
+        _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+        _model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME).to(DEVICE)
     return _model, _tokenizer
 
+# --------------------------
+# PDF / document ingestion
+# --------------------------
+def ingest_pdf(path: str, chunk_size: int = 800):
+    global index, chunks
+    with pdfplumber.open(path) as pdf:
+        text = "\n".join(page.extract_text() for page in pdf.pages if page.extract_text())
+    new_chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+    embs = embedding_model.encode(new_chunks, convert_to_numpy=True).astype("float32")
 
-def generate_answer(query):
+    if index is None:
+        index = faiss.IndexFlatL2(embs.shape[1])
+    index.add(embs)
+    chunks.extend(new_chunks)
+
+# --------------------------
+# Retrieval
+# --------------------------
+def retrieve(query, k=5):
+    if not index or len(chunks) == 0:
+        return []
+    query_emb = embedding_model.encode([query], convert_to_numpy=True).astype("float32")
+    distances, indices = index.search(query_emb, k)
+    return [chunks[i] for i in indices[0]]
+
+# --------------------------
+# Prompt builder
+# --------------------------
+def build_prompt(context_chunks, question):
+    context = "\n\n".join(context_chunks)
+    return f"""
+You are a financial analyst.
+
+Answer the question using ONLY the information below.
+If the answer is not present, say: "Not found in the document."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:
+"""
+
+# --------------------------
+# Answer generator
+# --------------------------
+def generate_answer(prompt):
     model, tokenizer = get_model()
-
-    inputs = tokenizer(query, return_tensors="pt")
-    device = next(model.parameters()).device
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-
-    outputs = model.generate(**inputs, max_new_tokens=100)
-
+    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = {k: v.to(DEVICE) for k, v in inputs.items()}
+    outputs = model.generate(**inputs, max_new_tokens=200, do_sample=False)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+# --------------------------
+# RAG query helper
+# --------------------------
+def rag_query(question):
+    docs_for_q = retrieve(question)
+    if not docs_for_q:
+        return "No documents ingested yet."
+    prompt = build_prompt(docs_for_q, question)
+    return generate_answer(prompt)
 
