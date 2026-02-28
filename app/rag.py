@@ -52,7 +52,7 @@ def get_model():
     if _model is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
-	model_name = "tiiuae/falcon-7b-instruct"
+        model_name = "tiiuae/falcon-7b-instruct"
         _tokenizer = AutoTokenizer.from_pretrained(model_name)
         _model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
 
