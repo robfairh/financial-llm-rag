@@ -5,7 +5,7 @@ The pipeline runs locally and uses an Apple 10-K for its capability
 demonstration. <br />
 The response model is based on the `google/flan-t5-small` which is an
 instruction-tuned version of T5 (Text-to-Text Transfer Transformer). <br />
-This is a lightweight version of the model which makes faster to run either
+This is a lightweight version of the model which makes it faster to run either
 locally or to deploy on SAAS free tiers. <br />
 And that could be the natural next step for a real life production-ready
 project, to deploy the package as-is or dockerized on a SAAS platform. <br />
