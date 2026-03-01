@@ -7,8 +7,12 @@ The response model is based on the `google/flan-t5-small` which is an
 instruction-tuned version of T5 (Text-to-Text Transfer Transformer). <br />
 This is a lightweight version of the model which makes it faster to run either
 locally or to deploy on SAAS free tiers. <br />
-And that could be the natural next step for a real life production-ready
-project, to deploy the package as-is or dockerized on a SAAS platform. <br />
+For that reason, the responses are not perfect. <br />
+A larger model, like the `tiiuae/falcon-7b-instruct` or
+`mistralai/Mistral-7B-Instruct-v0.2` (both Causal LMs) will probably
+give better answers. <br />
+And the next step for a real life production-ready project,
+could be to deploy the package as-is or dockerized on a SAAS platform. <br />
 
 
 # DEMO output
