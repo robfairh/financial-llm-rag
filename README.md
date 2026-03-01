@@ -64,3 +64,10 @@ tests/test_app.py ..                                               [100%]
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 =============== 2 passed, 2 warnings in 157.79s (0:02:37) ================
 ```
+
+## Run tests using GitHub Actions
+
+Tests passing [link](
+https://github.com/robfairh/financial-llm-rag/actions/runs/22529226301/job/65266033919)
+
+
